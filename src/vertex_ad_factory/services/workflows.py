@@ -10,12 +10,20 @@ from typing import Any
 
 Workflow = dict[str, dict[str, Any]]
 
-EXPECTED_NODES = {
+AROLL_EXPECTED_NODES = {
     "4": "CLIPTextEncode",
     "7": "EmptyLatentImage",
     "8": "KSampler",
     "10": "SaveImage",
     "11": "LoadImage",
+}
+
+BROLL_EXPECTED_NODES = {
+    "1": "UNETLoader",
+    "4": "CLIPTextEncode",
+    "7": "EmptyLatentImage",
+    "8": "KSampler",
+    "10": "SaveImage",
 }
 
 
@@ -32,6 +40,18 @@ class FirstFrameBindings:
         return self.seed if self.seed is not None else secrets.randbits(63)
 
 
+@dataclass(frozen=True, slots=True)
+class BrollFirstFrameBindings:
+    prompt: str
+    output_prefix: str = "vertex_ad_factory/broll_first_frame"
+    width: int = 720
+    height: int = 1280
+    seed: int | None = None
+
+    def resolved_seed(self) -> int:
+        return self.seed if self.seed is not None else secrets.randbits(63)
+
+
 def load_api_workflow(path: Path) -> Workflow:
     with path.open(encoding="utf-8") as file:
         workflow = json.load(file)
@@ -40,9 +60,13 @@ def load_api_workflow(path: Path) -> Workflow:
     return workflow
 
 
-def validate_first_frame_workflow(workflow: Workflow) -> None:
+def _validate_nodes(
+    workflow: Workflow,
+    expected_nodes: dict[str, str],
+    workflow_name: str,
+) -> None:
     errors: list[str] = []
-    for node_id, expected_type in EXPECTED_NODES.items():
+    for node_id, expected_type in expected_nodes.items():
         node = workflow.get(node_id)
         if node is None:
             errors.append(f"missing node {node_id} ({expected_type})")
@@ -55,7 +79,18 @@ def validate_first_frame_workflow(workflow: Workflow) -> None:
         if not isinstance(node.get("inputs"), dict):
             errors.append(f"node {node_id}: inputs must be an object")
     if errors:
-        raise ValueError("Invalid first-frame workflow: " + "; ".join(errors))
+        raise ValueError(f"Invalid {workflow_name} workflow: " + "; ".join(errors))
+
+
+def validate_first_frame_workflow(workflow: Workflow) -> None:
+    _validate_nodes(workflow, AROLL_EXPECTED_NODES, "A-roll first-frame")
+
+
+def validate_broll_first_frame_workflow(workflow: Workflow) -> None:
+    _validate_nodes(workflow, BROLL_EXPECTED_NODES, "B-roll first-frame")
+    model_input = workflow["8"]["inputs"].get("model")
+    if model_input != ["1", 0]:
+        raise ValueError("B-roll KSampler must use the base UNET directly")
 
 
 def _validate_relative_path(value: str, field_name: str) -> str:
@@ -97,11 +132,35 @@ def bind_first_frame(
     return workflow, seed
 
 
+def bind_broll_first_frame(
+    base_workflow: Workflow,
+    bindings: BrollFirstFrameBindings,
+) -> tuple[Workflow, int]:
+    validate_broll_first_frame_workflow(base_workflow)
+    prompt = bindings.prompt.strip()
+    if not prompt:
+        raise ValueError("prompt cannot be empty")
+    if bindings.width <= 0 or bindings.height <= 0:
+        raise ValueError("width and height must be positive")
+    if bindings.width % 16 or bindings.height % 16:
+        raise ValueError("width and height must be divisible by 16")
+    output_prefix = _validate_relative_path(bindings.output_prefix, "output_prefix")
+    seed = bindings.resolved_seed()
+    if not 0 <= seed < 2**64:
+        raise ValueError("seed must be between 0 and 2^64-1")
+    workflow = deepcopy(base_workflow)
+    workflow["4"]["inputs"]["text"] = prompt
+    workflow["7"]["inputs"]["width"] = bindings.width
+    workflow["7"]["inputs"]["height"] = bindings.height
+    workflow["8"]["inputs"]["seed"] = seed
+    workflow["10"]["inputs"]["filename_prefix"] = output_prefix
+    return workflow, seed
+
+
 def save_api_workflow(workflow: Workflow, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(
         json.dumps(workflow, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-
 

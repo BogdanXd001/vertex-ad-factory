@@ -8,7 +8,9 @@ from ..config import Settings
 from ..database import Database
 from ..models import JobStatus, Stage
 from ..services.workflows import (
+    BrollFirstFrameBindings,
     FirstFrameBindings,
+    bind_broll_first_frame,
     bind_first_frame,
     load_api_workflow,
     save_api_workflow,
@@ -24,6 +26,7 @@ class FirstFrameResult:
     seed: int
     elapsed_seconds: float
     outputs: list[dict]
+    model_family: str
     cached: bool = False
 
 
@@ -48,8 +51,8 @@ class FirstFrameStage:
         scene = self.database.get_scene_by_position(job_id, position)
         if scene is None:
             raise KeyError(f"Unknown scene position {position} for job {job_id}")
-        if scene["kind"] != "a_roll":
-            raise ValueError("PuLID presenter first frames require an A-roll scene")
+        is_a_roll = scene["kind"] == "a_roll"
+        model_family = "flux_pulid" if is_a_roll else "flux_base"
 
         previous = scene["output"].get("first_frame")
         if previous and not force:
@@ -61,26 +64,42 @@ class FirstFrameStage:
                 seed=int(previous["seed"]),
                 elapsed_seconds=float(previous["elapsed_seconds"]),
                 outputs=list(previous["outputs"]),
+                model_family=str(previous.get("model_family", model_family)),
                 cached=True,
             )
 
         output_prefix = (
             f"vertex_ad_factory/{job_id}/scene_{position:02d}/first_frame"
         )
-        template = load_api_workflow(
-            self.settings.workflows_dir / "aroll_first_frame.api.json"
-        )
-        workflow, resolved_seed = bind_first_frame(
-            template,
-            FirstFrameBindings(
-                prompt=scene["visual_prompt"],
-                reference_image=reference_image,
-                output_prefix=output_prefix,
-                width=width,
-                height=height,
-                seed=seed,
-            ),
-        )
+        if is_a_roll:
+            template = load_api_workflow(
+                self.settings.workflows_dir / "aroll_first_frame.api.json"
+            )
+            workflow, resolved_seed = bind_first_frame(
+                template,
+                FirstFrameBindings(
+                    prompt=scene["visual_prompt"],
+                    reference_image=reference_image,
+                    output_prefix=output_prefix,
+                    width=width,
+                    height=height,
+                    seed=seed,
+                ),
+            )
+        else:
+            template = load_api_workflow(
+                self.settings.workflows_dir / "broll_first_frame.api.json"
+            )
+            workflow, resolved_seed = bind_broll_first_frame(
+                template,
+                BrollFirstFrameBindings(
+                    prompt=scene["visual_prompt"],
+                    output_prefix=output_prefix,
+                    width=width,
+                    height=height,
+                    seed=seed,
+                ),
+            )
         payload_path = (
             self.settings.runs_dir
             / job_id
@@ -108,6 +127,7 @@ class FirstFrameStage:
                 "elapsed_seconds": elapsed,
                 "payload_path": str(payload_path),
                 "outputs": outputs,
+                "model_family": model_family,
             }
             self.database.record_scene_output(
                 scene["scene_id"], "first_frame", output
@@ -120,6 +140,7 @@ class FirstFrameStage:
                     "prompt_id": prompt_id,
                     "seed": resolved_seed,
                     "elapsed_seconds": elapsed,
+                    "model_family": model_family,
                 },
             )
             if self.database.all_scenes_have_output(job_id, "first_frame"):
@@ -134,6 +155,7 @@ class FirstFrameStage:
                 seed=resolved_seed,
                 elapsed_seconds=elapsed,
                 outputs=outputs,
+                model_family=model_family,
             )
         except Exception as error:
             self.database.fail_stage_run(stage_run_id, str(error))
@@ -141,4 +163,3 @@ class FirstFrameStage:
                 job_id, JobStatus.FAILED, Stage.FIRST_FRAMES.value, str(error)
             )
             raise
-

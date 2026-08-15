@@ -13,6 +13,8 @@ def utc_now() -> str:
 
 class JobStatus(StrEnum):
     CREATED = "created"
+    QUEUED = "queued"
+    RUNNING = "running"
     PLANNED = "planned"
     VOICE_READY = "voice_ready"
     FRAMES_READY = "frames_ready"
@@ -20,6 +22,7 @@ class JobStatus(StrEnum):
     LIPSYNC_READY = "lipsync_ready"
     ASSEMBLED = "assembled"
     COMPLETED = "completed"
+    WAITING_INPUT = "waiting_input"
     FAILED = "failed"
 
 
@@ -103,4 +106,3 @@ class Scene:
             raise ValueError("scene narration cannot be empty")
         if not isinstance(self.metadata, dict):
             raise ValueError("scene metadata must be an object")
-

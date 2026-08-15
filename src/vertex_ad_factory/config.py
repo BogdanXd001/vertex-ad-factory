@@ -17,6 +17,7 @@ class Settings:
     )
     workflows_dir: Path = PROJECT_ROOT / "workflows"
     runs_dir: Path = PROJECT_ROOT / "runs"
+    runtime_config_path: Path = PROJECT_ROOT / "data" / "runtime_config.json"
 
     def ensure_directories(self) -> None:
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
@@ -25,4 +26,3 @@ class Settings:
 
 
 settings = Settings()
-

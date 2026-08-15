@@ -12,6 +12,7 @@ from .database import Database
 from .models import JobStatus, Scene, SceneKind
 from .orchestrator import Orchestrator
 from .services.blueprints import load_blueprint
+from .services.installation import install_comfyui_dashboard
 from .services.workflows import (
     FirstFrameBindings,
     bind_first_frame,
@@ -89,6 +90,19 @@ def build_parser() -> argparse.ArgumentParser:
     submit.add_argument("--height", type=int, default=1280)
     submit.add_argument("--seed", type=int)
     submit.add_argument("--force", action="store_true")
+
+    install_dashboard = subparsers.add_parser(
+        "install-dashboard",
+        help="Install the one-click dashboard into ComfyUI",
+    )
+    install_dashboard.add_argument(
+        "--comfy-root", type=Path, default=Path("/workspace/ComfyUI")
+    )
+    install_dashboard.add_argument(
+        "--restart",
+        action="store_true",
+        help="Restart the supervised ComfyUI process after installation",
+    )
 
     return parser
 
@@ -240,7 +254,15 @@ def main() -> None:
         print(json.dumps(asdict(result), ensure_ascii=False, indent=2))
         return
 
+    if args.command == "install-dashboard":
+        result = install_comfyui_dashboard(
+            settings,
+            comfy_root=args.comfy_root,
+            restart=args.restart,
+        )
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
+
 
 if __name__ == "__main__":
     main()
-

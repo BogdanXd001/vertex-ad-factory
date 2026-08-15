@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
-import aiohttp
+if TYPE_CHECKING:
+    import aiohttp
 
 
 class ComfyError(RuntimeError):
@@ -25,8 +26,17 @@ class ComfyClient:
         self.base_url = base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
         self._session: aiohttp.ClientSession | None = None
+        self._aiohttp: Any = None
 
     async def __aenter__(self) -> ComfyClient:
+        try:
+            import aiohttp
+        except ImportError as error:
+            raise RuntimeError(
+                "aiohttp is required for ComfyUI requests; install the project "
+                "with its dependencies"
+            ) from error
+        self._aiohttp = aiohttp
         timeout = aiohttp.ClientTimeout(total=self.timeout_seconds)
         self._session = aiohttp.ClientSession(timeout=timeout)
         return self
@@ -57,7 +67,7 @@ class ComfyClient:
                 return {}
             try:
                 return await response.json()
-            except (aiohttp.ContentTypeError, ValueError) as error:
+            except (self._aiohttp.ContentTypeError, ValueError) as error:
                 raise ComfyError(f"Invalid JSON from ComfyUI at {path}") from error
 
     async def system_stats(self) -> dict[str, Any]:

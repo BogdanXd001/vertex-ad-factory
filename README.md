@@ -15,6 +15,33 @@ Fiecare reclamă și scenă este înregistrată în SQLite. Un eșec nu obligă
 reluarea întregului proiect; procesarea poate continua de la ultima etapă
 finalizată.
 
+## Automatizare din ComfyUI
+
+Panoul web pornește în fundal un job complet pentru toate etapele configurate,
+fără comenzi repetate pentru fiecare scenă. Voice-over-ul este cerut o singură
+dată de la ElevenLabs, cu timpi pe caractere, apoi este tăiat automat pentru
+toate scenele. Cadrele sunt ordonate pe familii de modele — toate scenele
+`flux_pulid`, apoi toate scenele `flux_base` — fără cerere de eliberare a
+modelelor între ele. Raportul `runs/JOB_ID/performance.json` păstrează timpii
+cold/warm și accelerarea măsurată.
+
+Activarea panoului se face o singură dată:
+
+```bash
+ad-factory install-dashboard --comfy-root /workspace/ComfyUI --restart
+```
+
+După restart, deschide `/vertex-ad-factory/` pe aceeași adresă pe care folosești
+ComfyUI, salvează ElevenLabs API key și Voice ID, apoi apasă **Pornește
+automatizarea**. Cheia este salvată doar local, într-un fișier cu permisiuni
+`0600`, și nu este returnată de API.
+
+În versiunea curentă, runnerul finalizează voice-over-ul și toate first
+frame-urile, apoi intră explicit în `waiting_input`. Pentru continuarea automată
+cu image-to-video, lip-sync și asamblare este necesar exportul API al
+workflow-urilor ComfyUI care funcționează deja pe instanța GPU; sistemul nu
+inventează noduri sau modele incompatibile.
+
 ## Verificare locală
 
 ```bash
@@ -59,4 +86,3 @@ ad-factory submit-first-frame JOB_ID \
   --reference-image A1_contradiction.png \
   --seed 42
 ```
-
