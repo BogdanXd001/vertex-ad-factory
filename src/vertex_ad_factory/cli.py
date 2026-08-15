@@ -3,11 +3,13 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+from dataclasses import asdict
 from pathlib import Path
 
 from .clients.comfy import ComfyClient
 from .config import settings
 from .database import Database
+from .models import JobStatus, Scene, SceneKind
 from .orchestrator import Orchestrator
 from .services.workflows import (
     FirstFrameBindings,
@@ -15,6 +17,7 @@ from .services.workflows import (
     load_api_workflow,
     save_api_workflow,
 )
+from .stages.first_frames import FirstFrameStage
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -35,6 +38,17 @@ def build_parser() -> argparse.ArgumentParser:
     listing = subparsers.add_parser("list-jobs", help="List recent jobs")
     listing.add_argument("--limit", type=int, default=20)
 
+    add_scene = subparsers.add_parser("add-scene", help="Add a planned scene")
+    add_scene.add_argument("job_id")
+    add_scene.add_argument("--position", type=int, required=True)
+    add_scene.add_argument("--kind", choices=["a_roll", "b_roll"], required=True)
+    add_scene.add_argument("--duration", type=int, choices=[4, 6, 8], required=True)
+    add_scene.add_argument("--narration", required=True)
+    add_scene.add_argument("--visual-prompt", required=True)
+
+    list_scenes = subparsers.add_parser("list-scenes", help="List job scenes")
+    list_scenes.add_argument("job_id")
+
     subparsers.add_parser("comfy-health", help="Check the local ComfyUI API")
 
     render = subparsers.add_parser(
@@ -51,6 +65,17 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=settings.runs_dir / "preview_first_frame.api.json",
     )
+
+    submit = subparsers.add_parser(
+        "submit-first-frame", help="Generate one scene first frame in ComfyUI"
+    )
+    submit.add_argument("job_id")
+    submit.add_argument("--position", type=int, required=True)
+    submit.add_argument("--reference-image", default="A1_contradiction.png")
+    submit.add_argument("--width", type=int, default=832)
+    submit.add_argument("--height", type=int, default=1216)
+    submit.add_argument("--seed", type=int)
+    submit.add_argument("--force", action="store_true")
 
     return parser
 
@@ -84,6 +109,37 @@ def main() -> None:
 
     if args.command == "list-jobs":
         print(json.dumps(database.list_jobs(args.limit), ensure_ascii=False, indent=2))
+        return
+
+    if args.command == "add-scene":
+        if database.get_job(args.job_id) is None:
+            raise SystemExit(f"Unknown job: {args.job_id}")
+        scene = database.add_scene(
+            Scene(
+                job_id=args.job_id,
+                position=args.position,
+                kind=SceneKind(args.kind),
+                duration_seconds=args.duration,
+                narration=args.narration,
+                visual_prompt=args.visual_prompt,
+            )
+        )
+        database.update_job_status(
+            args.job_id, JobStatus.PLANNED, current_stage="planning"
+        )
+        print(
+            json.dumps(
+                {"scene_id": scene.scene_id, "position": scene.position}, indent=2
+            )
+        )
+        return
+
+    if args.command == "list-scenes":
+        print(
+            json.dumps(
+                database.list_scenes(args.job_id), ensure_ascii=False, indent=2
+            )
+        )
         return
 
     if args.command == "comfy-health":
@@ -133,6 +189,21 @@ def main() -> None:
                 indent=2,
             )
         )
+        return
+
+    if args.command == "submit-first-frame":
+        result = asyncio.run(
+            FirstFrameStage(settings, database).execute(
+                job_id=args.job_id,
+                position=args.position,
+                reference_image=args.reference_image,
+                seed=args.seed,
+                width=args.width,
+                height=args.height,
+                force=args.force,
+            )
+        )
+        print(json.dumps(asdict(result), ensure_ascii=False, indent=2))
         return
 
 

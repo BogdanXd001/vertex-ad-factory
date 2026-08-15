@@ -5,7 +5,7 @@ import sqlite3
 from dataclasses import asdict
 from pathlib import Path
 
-from .models import AdJob, JobStatus, Scene, utc_now
+from .models import AdJob, JobStatus, Scene, SceneStatus, Stage, utc_now
 
 
 SCHEMA = """
@@ -154,3 +154,105 @@ class Database:
             )
         return scene
 
+    def get_scene_by_position(self, job_id: str, position: int) -> dict | None:
+        with self.connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM scenes WHERE job_id = ? AND position = ?",
+                (job_id, position),
+            ).fetchone()
+        if row is None:
+            return None
+        result = dict(row)
+        result["output"] = json.loads(result.pop("output_json"))
+        return result
+
+    def list_scenes(self, job_id: str) -> list[dict]:
+        with self.connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM scenes WHERE job_id = ? ORDER BY position",
+                (job_id,),
+            ).fetchall()
+        results: list[dict] = []
+        for row in rows:
+            result = dict(row)
+            result["output"] = json.loads(result.pop("output_json"))
+            results.append(result)
+        return results
+
+    def record_scene_output(
+        self,
+        scene_id: str,
+        output_name: str,
+        output: dict,
+        status: SceneStatus = SceneStatus.PENDING,
+        error: str | None = None,
+    ) -> None:
+        with self.connect() as connection:
+            row = connection.execute(
+                "SELECT output_json FROM scenes WHERE scene_id = ?", (scene_id,)
+            ).fetchone()
+            if row is None:
+                raise KeyError(f"Unknown scene: {scene_id}")
+            outputs = json.loads(row["output_json"])
+            outputs[output_name] = output
+            connection.execute(
+                """
+                UPDATE scenes
+                SET output_json = ?, status = ?, error = ?, updated_at = ?
+                WHERE scene_id = ?
+                """,
+                (
+                    json.dumps(outputs, ensure_ascii=False),
+                    status.value,
+                    error,
+                    utc_now(),
+                    scene_id,
+                ),
+            )
+
+    def start_stage_run(self, job_id: str, stage: Stage) -> int:
+        if self.get_job(job_id) is None:
+            raise KeyError(f"Unknown job: {job_id}")
+        with self.connect() as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO stage_runs (job_id, stage, status, started_at)
+                VALUES (?, ?, 'running', ?)
+                """,
+                (job_id, stage.value, utc_now()),
+            )
+        return int(cursor.lastrowid)
+
+    def finish_stage_run(self, stage_run_id: int, metrics: dict) -> None:
+        with self.connect() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE stage_runs
+                SET status = 'completed', finished_at = ?, metrics_json = ?
+                WHERE stage_run_id = ?
+                """,
+                (
+                    utc_now(),
+                    json.dumps(metrics, ensure_ascii=False),
+                    stage_run_id,
+                ),
+            )
+            if cursor.rowcount != 1:
+                raise KeyError(f"Unknown stage run: {stage_run_id}")
+
+    def fail_stage_run(self, stage_run_id: int, error: str) -> None:
+        with self.connect() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE stage_runs
+                SET status = 'failed', finished_at = ?, error = ?
+                WHERE stage_run_id = ?
+                """,
+                (utc_now(), error, stage_run_id),
+            )
+            if cursor.rowcount != 1:
+                raise KeyError(f"Unknown stage run: {stage_run_id}")
+
+    def all_scenes_have_output(self, job_id: str, output_name: str) -> bool:
+        scenes = self.list_scenes(job_id)
+        return bool(scenes) and all(output_name in scene["output"] for scene in scenes)
