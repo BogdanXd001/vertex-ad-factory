@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "name": "OceAura Expert Podcast — 30s Hybrid Pilot",
+  "product_name": "OceAura Collagen Lifting Body Oil",
+  "angle": "De ce pielea pierde hidratarea mai repede după 35 de ani",
+  "language": "ro",
+  "target_duration_seconds": 30,
+  "creative": {
+    "aroll_target_ratio": 0.3,
+    "aroll_ratio_tolerance": 0.05,
+    "presenter_lock": "Same believable Moldovan/Eastern European woman, 42–50, natural mature facial texture, warm light-medium complexion, dark chestnut hair, white medical-style coat without badge, name or invented credential.",
+    "environment_lock": "Same intimate skin-care podcast studio inside a modern consultation space: broadcast microphone, warm beige and muted sage palette, soft practical lamp, subtle skin-science decor, no clinic logo, no hospital look.",
+    "animation_lock": "Premium photoreal 3D cosmetic-science animation, warm peach and pink mature skin, natural pores, soft golden hydration elements, warm neutral background, educational and elegant rather than pathological.",
+    "product_lock": "Never generate the bottle or label. Reserve a clean product dock and composite the exact real OceAura bottle cutout in post-production.",
+    "output": {
+      "aspect_ratio": "9:16",
+      "width": 1080,
+      "height": 1920,
+      "fps": 30
+    }
+  },
+  "scenes": [
+    {
+      "position": 1,
+      "role": "hook",
+      "kind": "a_roll",
+      "visual_mode": "expert_podcast",
+      "audio_mode": "on_camera",
+      "duration_seconds": 4,
+      "narration": "După 35 de ani, pielea poate pierde mai repede hidratarea.",
+      "visual_prompt": "Photorealistic Moldovan Eastern European woman, approximately 42 to 50 years old, believable warm light-medium complexion, natural mature skin texture, subtle expression lines, dark chestnut shoulder-length hair, minimal professional makeup. She wears a clean white medical-style coat over a neutral beige blouse, with no badge, no name, no logo and no stethoscope. She sits at a podcast desk and speaks directly to camera beside a professional black broadcast microphone on a boom arm. The setting is an intimate premium skin-care podcast studio inside a modern consultation space, warm beige and muted sage palette, soft practical lamp, blurred shelves with neutral skin-science books and tasteful abstract skin diagrams, no clinic branding. Credible, intelligent and conversational, medium close-up, eye-level camera, soft cinematic key light, shallow depth of field, vertical 9:16, no text, no watermark.",
+      "motion_prompt": "The locked presenter looks directly into camera, makes one small natural hand gesture near the desk and delivers the line with calm credible facial movement. Subtle breathing and a restrained head nod. Preserve face, white coat, microphone and hands exactly. Slow 2 percent camera push-in, no dramatic motion.",
+      "reference_assets": ["expert_reference", "expert_environment"],
+      "post_production": "Use the master voice segment for lip-sync. Add Romanian subtitles above the Meta UI safe zone; highlight «DUPĂ 35 DE ANI» in warm yellow.",
+      "requires_lipsync": true
+    },
+    {
+      "position": 2,
+      "role": "problem_visualization",
+      "kind": "b_roll",
+      "visual_mode": "educational_animation",
+      "audio_mode": "voiceover",
+      "duration_seconds": 4,
+      "narration": "Bariera naturală lasă umiditatea să se evapore mai ușor.",
+      "visual_prompt": "Premium photoreal 3D cosmetic-science animation of a mature human skin cross-section, warm peach and soft pink cellular layers, natural surface pores and faint mature texture. Small translucent blue moisture droplets rest inside the upper skin layers while a few gently rise toward the surface. Warm neutral beige background, clean elegant beauty-ad lighting, cinematic macro lens, shallow depth of field, vertical 9:16. Educational cosmetic metaphor, not a medical condition. No text, no labels, no product, no rash, no lesions, no severe cracks, no watermark.",
+      "motion_prompt": "A few small blue moisture droplets slowly rise and evaporate above the skin surface while the natural barrier remains visible. Use smooth controlled motion and a very slow macro drift. Preserve the skin structure and color; no damage, inflammation or aggressive transformation.",
+      "reference_assets": ["skin_animation_style"],
+      "post_production": "Voiceover only. Add a restrained airy evaporation SFX and subtitle emphasis on «UMIDITATEA».",
+      "requires_lipsync": false
+    },
+    {
+      "position": 3,
+      "role": "symptom_visualization",
+      "kind": "b_roll",
+      "visual_mode": "educational_animation",
+      "audio_mode": "voiceover",
+      "duration_seconds": 4,
+      "narration": "De aceea pielea poate deveni uscată, aspră și lipsită de confort.",
+      "visual_prompt": "Extreme macro premium 3D beauty animation of the same mature skin surface becoming mildly dry and uneven, with natural pores and fine texture still visible. The surface looks slightly matte and rough, never cracked, inflamed or diseased. Warm peach-pink skin, neutral beige cosmetic studio background, cinematic soft light, shallow depth of field, vertical 9:16, no text, no product, no before-and-after split, no watermark.",
+      "motion_prompt": "The camera glides slowly across the mildly dry skin texture as the surface catches less light and a few tiny moisture beads fade. Keep the change subtle and realistic. No severe cracking, no medical imagery and no impossible aging transformation.",
+      "reference_assets": ["skin_animation_style"],
+      "post_production": "Use a clean hard cut from Scene 2. Keep voice dominant; add only a faint dry-texture sweep SFX.",
+      "requires_lipsync": false
+    },
+    {
+      "position": 4,
+      "role": "expert_bridge",
+      "kind": "a_roll",
+      "visual_mode": "expert_podcast",
+      "audio_mode": "on_camera",
+      "duration_seconds": 4,
+      "narration": "Soluția este să aplici un emolient imediat după duș.",
+      "visual_prompt": "Use the exact same locked Moldovan Eastern European female presenter, white medical-style coat, beige blouse, natural mature face, dark chestnut hair and the exact same premium skin-care podcast studio. Slight three-quarter camera angle while the professional black broadcast microphone remains visible. She leans forward slightly with a reassuring, knowledgeable expression, one relaxed hand beside the microphone. Warm beige and muted sage background, soft practical lamp, blurred skin-science decor, no logo, no badge, no name, medium close-up, vertical 9:16, photorealistic, no text, no watermark.",
+      "motion_prompt": "The locked presenter makes one concise explanatory gesture, lightly nods and speaks the line with natural controlled lip movement. Preserve identity, coat, hands, microphone and background. Camera remains nearly static with only subtle organic drift.",
+      "reference_assets": ["expert_reference", "expert_environment"],
+      "post_production": "Use the matching segment cut from the same master voice file. Highlight «DUPĂ DUȘ» in the subtitle.",
+      "requires_lipsync": true
+    },
+    {
+      "position": 5,
+      "role": "application_mechanism",
+      "kind": "b_roll",
+      "visual_mode": "application_demo",
+      "audio_mode": "voiceover",
+      "duration_seconds": 4,
+      "narration": "Pe pielea ușor umedă, acesta formează un strat fin de protecție.",
+      "visual_prompt": "Premium photoreal 3D macro animation of the same mature skin surface while slightly damp. Several tiny clear moisture droplets sit on natural warm peach skin. A very thin translucent golden emollient film begins spreading evenly across the surface, elegant and lightweight, never thick or greasy. Natural pores remain visible beneath the film. Warm bathroom-inspired neutral background, cinematic macro lighting, vertical 9:16, no hand, no bottle, no text, no watermark.",
+      "motion_prompt": "The ultra-thin golden film spreads slowly over the damp skin and settles into a nearly invisible luminous layer while the small moisture droplets remain beneath it. Use a restrained shimmer and slow lateral macro drift. Do not flood the skin or make it look like plastic wrap.",
+      "reference_assets": ["skin_animation_style"],
+      "post_production": "Voiceover only. Add a soft glide SFX as the golden layer settles and highlight «STRAT FIN».",
+      "requires_lipsync": false
+    },
+    {
+      "position": 6,
+      "role": "product_mechanism",
+      "kind": "b_roll",
+      "visual_mode": "product_composite",
+      "audio_mode": "voiceover",
+      "duration_seconds": 6,
+      "narration": "OceAura combină ingrediente emoliente pentru ca pielea să se simtă mai moale, suplă și îngrijită.",
+      "visual_prompt": "Premium warm-neutral cosmetic product-reveal scene on a refined bathroom counter. Reserve the central 38 percent of the vertical frame as completely empty product space with a believable soft shadow dock. Around the empty center, animate elegant ingredient metaphors: translucent amber grapeseed-oil droplets, small warm golden Vitamin E spheres and a soft pearlescent hydration mesh. Warm beige and muted sage palette, premium cinematic lighting, shallow depth of field, vertical 9:16. No bottle, no label, no text, no logo, no fake packaging, no watermark.",
+      "motion_prompt": "The amber droplets, warm golden spheres and pearlescent hydration mesh move gently toward the empty central product dock, then settle around it without entering the center. Keep the camera locked and preserve the empty space. Do not generate any bottle, packaging, label or text.",
+      "reference_assets": ["ingredient_animation_style", "product_cutout"],
+      "post_production": "Composite the exact real OceAura bottle cutout into the empty center after video generation. Keep the label static and legible; add only contact shadow, warm reflection and a subtle highlight sweep.",
+      "requires_lipsync": false
+    },
+    {
+      "position": 7,
+      "role": "cta",
+      "kind": "b_roll",
+      "visual_mode": "end_card",
+      "audio_mode": "voiceover",
+      "duration_seconds": 4,
+      "narration": "Comandă acum, cu livrare rapidă și plată la primire.",
+      "visual_prompt": "Clean premium vertical end-card background for a body-oil advertisement, warm beige stone pedestal, muted sage accents, soft golden reflection and elegant bathroom atmosphere. Reserve the center for the exact real product cutout and preserve clear negative space above and below for Romanian headline and call-to-action. Static composition, warm cinematic product lighting, vertical 9:16. No generated bottle, no generated text, no logo, no watermark.",
+      "motion_prompt": "Keep the camera almost fully locked. Add only a subtle moving light reflection in the background and a gentle 2 percent push-in. The central product dock and text safe zones remain completely unchanged. End with the frame still for the final 12 frames.",
+      "reference_assets": ["product_cutout", "brand_palette"],
+      "post_production": "Composite the exact real bottle. Add headline «PIELE MAI MOALE ȘI MAI ÎNGRIJITĂ», CTA «COMANDĂ ACUM» and subline «Livrare în Moldova • Plată la primire». Keep CTA visible for the full four seconds.",
+      "requires_lipsync": false
+    }
+  ]
+}
+

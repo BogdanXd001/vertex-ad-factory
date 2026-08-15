@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vertex-ad-factory"
+version = "0.1.0"
+description = "Resumable A-roll/B-roll ad generation orchestrator for ComfyUI"
+requires-python = ">=3.12"
+dependencies = ["aiohttp>=3.10,<4"]
+
+[project.scripts]
+ad-factory = "vertex_ad_factory.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
