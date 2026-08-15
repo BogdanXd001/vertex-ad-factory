@@ -15,3 +15,19 @@ Fiecare reclamă și scenă este înregistrată în SQLite. Un eșec nu obligă
 reluarea întregului proiect; procesarea poate continua de la ultima etapă
 finalizată.
 
+## Verificare locală
+
+```bash
+ad-factory init-db
+ad-factory comfy-health
+```
+
+## Dry-run pentru primul cadru A-roll
+
+Comanda modifică o copie a workflow-ului și nu trimite nimic către GPU:
+
+```bash
+ad-factory render-first-frame \
+  --prompt "Photorealistic podcast presenter" \
+  --seed 42
+```
