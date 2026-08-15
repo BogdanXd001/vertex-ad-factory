@@ -38,8 +38,8 @@ class FirstFrameStage:
         position: int,
         reference_image: str,
         seed: int | None = None,
-        width: int = 832,
-        height: int = 1216,
+        width: int = 720,
+        height: int = 1280,
         force: bool = False,
     ) -> FirstFrameResult:
         job = self.database.get_job(job_id)
@@ -141,3 +141,4 @@ class FirstFrameStage:
                 job_id, JobStatus.FAILED, Stage.FIRST_FRAMES.value, str(error)
             )
             raise
+

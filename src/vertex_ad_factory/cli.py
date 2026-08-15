@@ -11,6 +11,7 @@ from .config import settings
 from .database import Database
 from .models import JobStatus, Scene, SceneKind
 from .orchestrator import Orchestrator
+from .services.blueprints import load_blueprint
 from .services.workflows import (
     FirstFrameBindings,
     bind_first_frame,
@@ -25,6 +26,18 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("init-db", help="Create or upgrade the SQLite database")
+
+    validate_blueprint = subparsers.add_parser(
+        "validate-blueprint",
+        help="Validate timing, A-roll ratio and scene routing in a JSON blueprint",
+    )
+    validate_blueprint.add_argument("blueprint", type=Path)
+
+    create_from_blueprint = subparsers.add_parser(
+        "create-from-blueprint",
+        help="Create a planned job and all scenes from a validated blueprint",
+    )
+    create_from_blueprint.add_argument("blueprint", type=Path)
 
     create = subparsers.add_parser("create-job", help="Create a new ad job")
     create.add_argument("--product", required=True)
@@ -57,8 +70,8 @@ def build_parser() -> argparse.ArgumentParser:
     render.add_argument("--prompt", required=True)
     render.add_argument("--reference-image", default="A1_contradiction.png")
     render.add_argument("--output-prefix", default="vertex_ad_factory/preview")
-    render.add_argument("--width", type=int, default=832)
-    render.add_argument("--height", type=int, default=1216)
+    render.add_argument("--width", type=int, default=720)
+    render.add_argument("--height", type=int, default=1280)
     render.add_argument("--seed", type=int)
     render.add_argument(
         "--destination",
@@ -72,8 +85,8 @@ def build_parser() -> argparse.ArgumentParser:
     submit.add_argument("job_id")
     submit.add_argument("--position", type=int, required=True)
     submit.add_argument("--reference-image", default="A1_contradiction.png")
-    submit.add_argument("--width", type=int, default=832)
-    submit.add_argument("--height", type=int, default=1216)
+    submit.add_argument("--width", type=int, default=720)
+    submit.add_argument("--height", type=int, default=1280)
     submit.add_argument("--seed", type=int)
     submit.add_argument("--force", action="store_true")
 
@@ -88,6 +101,27 @@ def main() -> None:
 
     if args.command == "init-db":
         print(f"Database ready: {settings.database_path}")
+        return
+
+    if args.command == "validate-blueprint":
+        blueprint = load_blueprint(args.blueprint)
+        print(json.dumps(blueprint.summary(), ensure_ascii=False, indent=2))
+        return
+
+    if args.command == "create-from-blueprint":
+        blueprint = load_blueprint(args.blueprint)
+        job = Orchestrator().create_from_blueprint(blueprint)
+        print(
+            json.dumps(
+                {
+                    "job_id": job.job_id,
+                    "status": job.status.value,
+                    "blueprint": blueprint.summary(),
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
         return
 
     if args.command == "create-job":
@@ -209,3 +243,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

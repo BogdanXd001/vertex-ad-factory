@@ -4,6 +4,7 @@ import json
 import sqlite3
 from dataclasses import asdict
 from pathlib import Path
+from typing import Iterable
 
 from .models import AdJob, JobStatus, Scene, SceneStatus, Stage, utc_now
 
@@ -31,6 +32,7 @@ CREATE TABLE IF NOT EXISTS scenes (
     duration_seconds INTEGER NOT NULL CHECK (duration_seconds IN (4, 6, 8)),
     narration TEXT NOT NULL,
     visual_prompt TEXT NOT NULL DEFAULT '',
+    metadata_json TEXT NOT NULL DEFAULT '{}',
     status TEXT NOT NULL,
     output_json TEXT NOT NULL DEFAULT '{}',
     error TEXT,
@@ -73,32 +75,104 @@ class Database:
     def initialize(self) -> None:
         with self.connect() as connection:
             connection.executescript(SCHEMA)
+            self._ensure_column(
+                connection,
+                table="scenes",
+                column="metadata_json",
+                declaration="TEXT NOT NULL DEFAULT '{}'",
+            )
+
+    @staticmethod
+    def _ensure_column(
+        connection: sqlite3.Connection,
+        table: str,
+        column: str,
+        declaration: str,
+    ) -> None:
+        columns = {
+            str(row["name"])
+            for row in connection.execute(f"PRAGMA table_info({table})").fetchall()
+        }
+        if column not in columns:
+            connection.execute(
+                f"ALTER TABLE {table} ADD COLUMN {column} {declaration}"
+            )
+
+    @staticmethod
+    def _insert_job(
+        connection: sqlite3.Connection,
+        job: AdJob,
+        config: dict | None,
+    ) -> None:
+        connection.execute(
+            """
+            INSERT INTO jobs (
+                job_id, product_name, angle, language,
+                target_duration_seconds, status, current_stage,
+                error, config_json, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                job.job_id,
+                job.product_name.strip(),
+                job.angle.strip(),
+                job.language,
+                job.target_duration_seconds,
+                job.status.value,
+                job.current_stage,
+                job.error,
+                json.dumps(config or {}, ensure_ascii=False),
+                job.created_at,
+                job.updated_at,
+            ),
+        )
+
+    @staticmethod
+    def _insert_scene(connection: sqlite3.Connection, scene: Scene) -> None:
+        payload = asdict(scene)
+        payload["kind"] = scene.kind.value
+        payload["status"] = scene.status.value
+        payload["metadata_json"] = json.dumps(scene.metadata, ensure_ascii=False)
+        connection.execute(
+            """
+            INSERT INTO scenes (
+                scene_id, job_id, position, kind, duration_seconds,
+                narration, visual_prompt, metadata_json, status,
+                created_at, updated_at
+            ) VALUES (
+                :scene_id, :job_id, :position, :kind, :duration_seconds,
+                :narration, :visual_prompt, :metadata_json, :status,
+                :created_at, :updated_at
+            )
+            """,
+            payload,
+        )
 
     def create_job(self, job: AdJob, config: dict | None = None) -> AdJob:
         job.validate()
         with self.connect() as connection:
-            connection.execute(
-                """
-                INSERT INTO jobs (
-                    job_id, product_name, angle, language,
-                    target_duration_seconds, status, current_stage,
-                    error, config_json, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    job.job_id,
-                    job.product_name.strip(),
-                    job.angle.strip(),
-                    job.language,
-                    job.target_duration_seconds,
-                    job.status.value,
-                    job.current_stage,
-                    job.error,
-                    json.dumps(config or {}, ensure_ascii=False),
-                    job.created_at,
-                    job.updated_at,
-                ),
-            )
+            self._insert_job(connection, job, config)
+        return job
+
+    def create_job_with_scenes(
+        self,
+        job: AdJob,
+        scenes: Iterable[Scene],
+        config: dict | None = None,
+    ) -> AdJob:
+        job.validate()
+        scene_list = list(scenes)
+        for scene in scene_list:
+            scene.validate()
+            if scene.job_id != job.job_id:
+                raise ValueError("all scenes must belong to the new job")
+        positions = [scene.position for scene in scene_list]
+        if len(positions) != len(set(positions)):
+            raise ValueError("scene positions must be unique")
+        with self.connect() as connection:
+            self._insert_job(connection, job, config)
+            for scene in scene_list:
+                self._insert_scene(connection, scene)
         return job
 
     def get_job(self, job_id: str) -> dict | None:
@@ -136,23 +210,16 @@ class Database:
 
     def add_scene(self, scene: Scene) -> Scene:
         scene.validate()
-        payload = asdict(scene)
-        payload["kind"] = scene.kind.value
-        payload["status"] = scene.status.value
         with self.connect() as connection:
-            connection.execute(
-                """
-                INSERT INTO scenes (
-                    scene_id, job_id, position, kind, duration_seconds,
-                    narration, visual_prompt, status, created_at, updated_at
-                ) VALUES (
-                    :scene_id, :job_id, :position, :kind, :duration_seconds,
-                    :narration, :visual_prompt, :status, :created_at, :updated_at
-                )
-                """,
-                payload,
-            )
+            self._insert_scene(connection, scene)
         return scene
+
+    @staticmethod
+    def _scene_from_row(row: sqlite3.Row) -> dict:
+        result = dict(row)
+        result["metadata"] = json.loads(result.pop("metadata_json", "{}"))
+        result["output"] = json.loads(result.pop("output_json"))
+        return result
 
     def get_scene_by_position(self, job_id: str, position: int) -> dict | None:
         with self.connect() as connection:
@@ -160,11 +227,7 @@ class Database:
                 "SELECT * FROM scenes WHERE job_id = ? AND position = ?",
                 (job_id, position),
             ).fetchone()
-        if row is None:
-            return None
-        result = dict(row)
-        result["output"] = json.loads(result.pop("output_json"))
-        return result
+        return self._scene_from_row(row) if row else None
 
     def list_scenes(self, job_id: str) -> list[dict]:
         with self.connect() as connection:
@@ -172,12 +235,7 @@ class Database:
                 "SELECT * FROM scenes WHERE job_id = ? ORDER BY position",
                 (job_id,),
             ).fetchall()
-        results: list[dict] = []
-        for row in rows:
-            result = dict(row)
-            result["output"] = json.loads(result.pop("output_json"))
-            results.append(result)
-        return results
+        return [self._scene_from_row(row) for row in rows]
 
     def record_scene_output(
         self,
@@ -256,3 +314,4 @@ class Database:
     def all_scenes_have_output(self, job_id: str, output_name: str) -> bool:
         scenes = self.list_scenes(job_id)
         return bool(scenes) and all(output_name in scene["output"] for scene in scenes)
+

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
+from typing import Any
 from uuid import uuid4
 
 
@@ -25,6 +26,20 @@ class JobStatus(StrEnum):
 class SceneKind(StrEnum):
     A_ROLL = "a_roll"
     B_ROLL = "b_roll"
+
+
+class VisualMode(StrEnum):
+    EXPERT_PODCAST = "expert_podcast"
+    EDUCATIONAL_ANIMATION = "educational_animation"
+    APPLICATION_DEMO = "application_demo"
+    PRODUCT_COMPOSITE = "product_composite"
+    END_CARD = "end_card"
+
+
+class AudioMode(StrEnum):
+    ON_CAMERA = "on_camera"
+    VOICEOVER = "voiceover"
+    SILENT = "silent"
 
 
 class SceneStatus(StrEnum):
@@ -73,6 +88,7 @@ class Scene:
     duration_seconds: int
     narration: str
     visual_prompt: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
     scene_id: str = field(default_factory=lambda: uuid4().hex)
     status: SceneStatus = SceneStatus.PENDING
     created_at: str = field(default_factory=utc_now)
@@ -85,4 +101,6 @@ class Scene:
             raise ValueError("scene duration must be one of: 4, 6, 8")
         if not self.narration.strip():
             raise ValueError("scene narration cannot be empty")
+        if not isinstance(self.metadata, dict):
+            raise ValueError("scene metadata must be an object")
 

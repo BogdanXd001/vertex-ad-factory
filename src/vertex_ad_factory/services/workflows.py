@@ -24,8 +24,8 @@ class FirstFrameBindings:
     prompt: str
     reference_image: str = "A1_contradiction.png"
     output_prefix: str = "vertex_ad_factory/first_frame"
-    width: int = 832
-    height: int = 1216
+    width: int = 720
+    height: int = 1280
     seed: int | None = None
 
     def resolved_seed(self) -> int:
@@ -103,4 +103,5 @@ def save_api_workflow(workflow: Workflow, destination: Path) -> None:
         json.dumps(workflow, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
+
 
